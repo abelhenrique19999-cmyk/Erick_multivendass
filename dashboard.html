@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .gradient-bg { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 glass border-r border-gray-800 p-6 flex flex-col justify-between hidden md:flex">
+    <div>
+      <h2 class="text-xl font-bold gradient-text mb-8">Painel Admin</h2>
+      <nav class="space-y-4">
+        <a href="#geral" class="block font-medium hover:text-purple-400">⚡ Configurações Gerais</a>
+        <a href="#cursos" class="block font-medium hover:text-purple-400">📚 Gerenciar Cursos</a>
+      </nav>
+    </div>
+    <button onclick="logout()" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Sair do Painel</button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold">Gestão do Site</h1>
+      <div class="flex gap-4">
+        <a href="/" target="_blank" class="px-4 py-2 glass rounded-xl text-sm font-semibold">👁️ Ver Prévia</a>
+        <button onclick="saveAll()" class="gradient-bg px-6 py-2 rounded-xl text-sm font-bold">Salvar Alterações</button>
+      </div>
+    </div>
+
+    <!-- Seção Geral -->
+    <section id="geral" class="glass p-6 rounded-2xl mb-8 space-y-4">
+      <h2 class="text-xl font-bold mb-4">Configurações Principais</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Nome da Marca</label>
+          <input type="text" id="brandName" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Cor Primária</label>
+          <input type="color" id="primaryColor" class="w-full h-12 bg-gray-900 border border-gray-700 rounded-xl p-1">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gray-400 mb-1">Título Principal (Hero)</label>
+          <input type="text" id="heroTitle" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gray-400 mb-1">Subtítulo (Hero)</label>
+          <textarea id="heroSubtitle" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 h-20"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção Cursos -->
+    <section id="cursos" class="glass p-6 rounded-2xl mb-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold">Cursos Cadastrados</h2>
+        <button onclick="openCourseModal()" class="gradient-bg px-4 py-2 rounded-xl text-sm font-semibold">+ Novo Curso</button>
+      </div>
+      <div id="admin-courses-list" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('admin_token');
+    if (!token) window.location.href = '/admin';
+
+    async function fetchAdminData() {
+      const res = await fetch('/api/admin/data', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) { logout(); return; }
+      const data = await res.json();
+
+      document.getElementById('brandName').value = data.settings.brandName || '';
+      document.getElementById('primaryColor').value = data.settings.primaryColor || '#8b5cf6';
+      document.getElementById('heroTitle').value = data.settings.heroTitle || '';
+      document.getElementById('heroSubtitle').value = data.settings.heroSubtitle || '';
+
+      renderCourses(data.courses);
+    }
+
+    function renderCourses(courses) {
+      document.getElementById('admin-courses-list').innerHTML = courses.map(c => `
+        <div class="flex justify-between items-center bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+          <div class="flex items-center gap-4">
+            <img src="${c.image}" class="w-12 h-12 rounded-lg object-cover">
+            <div>
+              <h4 class="font-bold">${c.title}</h4>
+              <span class="text-xs text-gray-400">R$ ${c.price.toFixed(2)} | Status: ${c.active ? 'Ativo' : 'Inativo'}</span>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="deleteCourse(${c.id})" class="text-red-400 hover:text-red-300 text-sm px-3 py-1">Excluir</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function saveAll() {
+      const settings = {
+        brandName: document.getElementById('brandName').value,
+        primaryColor: document.getElementById('primaryColor').value,
+        heroTitle: document.getElementById('heroTitle').value,
+        heroSubtitle: document.getElementById('heroSubtitle').value
+      };
+
+      await fetch('/api/admin/save-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(settings)
+      });
+
+      alert('Alterações salvas com sucesso!');
+    }
+
+    async function deleteCourse(id) {
+      if (!confirm('Deseja realmente excluir este curso?')) return;
+      await fetch(`/api/admin/courses/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchAdminData();
+    }
+
+    function logout() {
+      localStorage.removeItem('admin_token');
+      window.location.href = '/admin';
+    }
+
+    fetchAdminData();
+  </script>
+</body>
+</html>

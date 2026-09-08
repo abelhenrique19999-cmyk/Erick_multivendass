@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Cursos - Marketing Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .gradient-bg { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+    .gradient-text { background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  </style>
+</head>
+<body class="min-h-screen py-12 px-4">
+  <div class="max-w-7xl mx-auto">
+    <a href="/" class="text-gray-400 hover:text-white mb-8 inline-block">← Voltar para Home</a>
+    <h1 class="text-4xl font-extrabold mb-8 text-center">Todos os Nossos Cursos</h1>
+    <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-3 gap-8"></div>
+  </div>
+  <script>
+    async function loadCursos() {
+      const res = await fetch('/api/site-data');
+      const data = await res.json();
+      document.getElementById('courses-grid').innerHTML = data.courses.map(course => `
+        <div class="glass rounded-2xl overflow-hidden p-6 flex flex-col justify-between">
+          <img src="${course.image}" class="w-full h-48 object-cover rounded-xl mb-4">
+          <h3 class="text-xl font-bold mb-2">${course.title}</h3>
+          <p class="text-gray-400 text-sm mb-4">${course.description}</p>
+          <div class="text-2xl font-black gradient-text mb-4">R$ ${course.price.toFixed(2)}</div>
+          <a href="/curso/${course.id}" class="block text-center gradient-bg text-white font-semibold py-2.5 rounded-xl">Ver Detalhes</a>
+        </div>
+      `).join('');
+    }
+    loadCursos();
+  </script>
+</body>
+</html>
